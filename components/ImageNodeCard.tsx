@@ -12,7 +12,7 @@ interface ImageNodeCardProps {
 
 export const ImageNodeCard = memo(function ImageNodeCard({ data }: ImageNodeCardProps) {
   return (
-    <div className="w-[300px]">
+    <div className="w-[512px]">
       <Handle type="target" position={Position.Left} style={{ opacity: 0, pointerEvents: "none" }} />
 
       <div className="rounded-2xl border bg-card shadow-md overflow-hidden">

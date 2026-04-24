@@ -10,6 +10,7 @@ import {
   useReactFlow,
 } from "@xyflow/react"
 import { ImageNodeCard } from "@/components/ImageNodeCard"
+import { NODE_WIDTH, NODE_HEIGHT } from "@/lib/layout"
 import { PromptEdgeComponent } from "@/components/PromptEdge"
 import type { ImageNode, PromptEdge } from "@/lib/types"
 
@@ -29,9 +30,8 @@ function CanvasInner({ nodes, edges, onNodesChange, onEdgesChange }: CanvasProps
 
   useEffect(() => {
     const HEADER_H = 48
-    // Source node (300px wide) centered in the left third of the viewport
-    const panX = window.innerWidth / 6 - 150
-    const panY = (window.innerHeight - HEADER_H) / 2 - 150
+    const panX = window.innerWidth / 6 - NODE_WIDTH / 2
+    const panY = (window.innerHeight - HEADER_H) / 2 - NODE_HEIGHT / 2
     setViewport({ x: panX, y: panY, zoom: 1 }, { duration: 0 })
   }, [setViewport])
 
