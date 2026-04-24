@@ -39,6 +39,7 @@ export interface PromptEdgeData extends Record<string, unknown> {
   prompt?: string
   childId: string
   onSubmit: (childId: string, prompt: string) => void
+  onInteract?: () => void
 }
 
 export type PromptEdge = Edge<PromptEdgeData>

@@ -38,15 +38,25 @@ export default function Home() {
   const sourceMimeRef = useRef("image/jpeg")
   const testModeRef = useRef(false)
   const qualityRef = useRef<"low" | "high">("high")
+  const startedInteractingRef = useRef(false)
 
   treeRef.current = tree
   testModeRef.current = testMode
   qualityRef.current = quality
 
-  const { nodes, edges } = useMemo(
-    () => treeToFlow(tree, stableOnImageReady.current, stableOnSubmit.current),
-    [tree]
-  )
+  const { nodes, edges } = useMemo(() => {
+    const result = treeToFlow(tree, stableOnImageReady.current, stableOnSubmit.current)
+    return {
+      ...result,
+      edges: result.edges.map(e => ({
+        ...e,
+        data: {
+          ...e.data,
+          onInteract: () => { startedInteractingRef.current = true },
+        },
+      })),
+    }
+  }, [tree])
 
   const handleImageReady = useCallback(async (b64: string, mimeType: string) => {
     sourceB64Ref.current = b64
@@ -78,7 +88,7 @@ export default function Home() {
         body: JSON.stringify({ imageB64: b64 }),
       })
       const data = await res.json()
-      if (res.ok) {
+      if (res.ok && !startedInteractingRef.current) {
         setTree(prev =>
           updateNode(prev, SOURCE_NODE_ID, n => ({
             ...n,
@@ -175,6 +185,7 @@ export default function Home() {
   const reset = useCallback(() => {
     sourceB64Ref.current = null
     sourceMimeRef.current = "image/jpeg"
+    startedInteractingRef.current = false
     nodeCounter = 0
     setTree(initialTree)
   }, [])

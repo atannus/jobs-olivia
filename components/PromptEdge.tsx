@@ -116,7 +116,10 @@ export const PromptEdgeComponent = memo(function PromptEdgeComponent({
                 rows={2}
                 placeholder="Describe the scene…"
                 value={promptText}
-                onChange={(e) => setPromptText(e.target.value)}
+                onChange={(e) => {
+                  if (!promptText && e.target.value) data?.onInteract?.()
+                  setPromptText(e.target.value)
+                }}
                 className="nodrag nopan resize-none text-xs p-2 min-h-0"
                 onKeyDown={(e) => {
                   if (e.key === "Enter" && !e.shiftKey) {

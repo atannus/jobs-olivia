@@ -1,0 +1,32 @@
+The Olivia Agentic Developer Test
+Olivia Applied Agentic Developer — Take-Home Challenge
+
+
+Build an AI-powered product ad generator.
+
+
+Given a product image and a text prompt (e.g. "lifestyle photo on a marble countertop" or "summer Instagram ad with bold text"), build a small web app that:
+
+
+
+Accepts a product image upload and a natural language prompt
+Uses at least one AI API (OpenAI, Anthropic, Replicate, etc.) to generate or transform the product into a new creative asset
+Displays the result in a clean, interactive UI — not just a raw image dump
+
+Bonus points for:
+
+
+
+Letting the user iterate via conversation ("make the background warmer", "add a headline")
+Any agentic behavior — the system making smart decisions without being explicitly told (auto-detecting product type, suggesting prompt improvements, choosing the right model/approach)
+A canvas or editor feel rather than just input → output
+Clean code, good UX, and product taste
+
+Rules:
+
+
+
+Use whatever stack you want (we use TypeScript/React/Node, so that's a plus)
+AI coding tools encouraged — we want to see how you work with AI, not without it
+Time limit: 48 hours from when you start. We're measuring output quality and product instinct, not hours spent
+Deploy it somewhere we can click (Vercel, Netlify, whatever) and share the repo
