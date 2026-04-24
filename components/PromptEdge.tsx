@@ -79,7 +79,7 @@ export const PromptEdgeComponent = memo(function PromptEdgeComponent({
   targetY,
   data,
 }: PromptEdgeProps) {
-  const [promptText, setPromptText] = useState("")
+  const [promptText, setPromptText] = useState(() => data?.getDraftText?.() ?? "")
   const isDraft = data?.status === "draft"
   const canSubmit = isDraft && promptText.trim().length > 0
 
@@ -89,6 +89,7 @@ export const PromptEdgeComponent = memo(function PromptEdgeComponent({
     if (!canSubmit || !data?.onSubmit) return
     data.onSubmit(data.childId, promptText.trim())
     setPromptText("")
+    data?.setDraftText?.("")
   }
 
   return (
@@ -119,6 +120,7 @@ export const PromptEdgeComponent = memo(function PromptEdgeComponent({
                 onChange={(e) => {
                   if (!promptText && e.target.value) data?.onInteract?.()
                   setPromptText(e.target.value)
+                  data?.setDraftText?.(e.target.value)
                 }}
                 className="nodrag nopan resize-none text-xs p-2 min-h-0"
                 onKeyDown={(e) => {

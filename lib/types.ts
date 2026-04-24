@@ -40,6 +40,8 @@ export interface PromptEdgeData extends Record<string, unknown> {
   childId: string
   onSubmit: (childId: string, prompt: string) => void
   onInteract?: () => void
+  getDraftText?: () => string
+  setDraftText?: (text: string) => void
 }
 
 export type PromptEdge = Edge<PromptEdgeData>

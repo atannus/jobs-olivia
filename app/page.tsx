@@ -4,7 +4,7 @@ import { useState, useCallback, useRef, useMemo } from "react"
 import { RefreshCw, FlaskConical, Sparkles } from "lucide-react"
 import { Canvas } from "@/components/Canvas"
 import { treeToFlow, updateNode, updateEdge, addChild, findParent } from "@/lib/tree"
-import type { TreeNode, ProductAnalysis } from "@/lib/types"
+import type { TreeNode, ProductAnalysis, PromptEdgeData } from "@/lib/types"
 
 const SOURCE_NODE_ID = "source"
 let nodeCounter = 0
@@ -39,6 +39,7 @@ export default function Home() {
   const testModeRef = useRef(false)
   const qualityRef = useRef<"low" | "high">("high")
   const startedInteractingRef = useRef(false)
+  const draftTextsRef = useRef<Map<string, string>>(new Map())
 
   treeRef.current = tree
   testModeRef.current = testMode
@@ -53,7 +54,9 @@ export default function Home() {
         data: {
           ...e.data,
           onInteract: () => { startedInteractingRef.current = true },
-        },
+          getDraftText: () => draftTextsRef.current.get(e.id) ?? "",
+          setDraftText: (text: string) => { draftTextsRef.current.set(e.id, text) },
+        } as PromptEdgeData,
       })),
     }
   }, [tree])
@@ -186,6 +189,7 @@ export default function Home() {
     sourceB64Ref.current = null
     sourceMimeRef.current = "image/jpeg"
     startedInteractingRef.current = false
+    draftTextsRef.current = new Map()
     nodeCounter = 0
     setTree(initialTree)
   }, [])
