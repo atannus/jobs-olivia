@@ -198,9 +198,9 @@ export default function Home() {
 
   return (
     <div className="h-screen flex flex-col overflow-hidden">
-      <header className="flex-none h-12 border-b flex items-center justify-between px-5 bg-background z-10">
-        <span className="text-sm font-semibold tracking-tight">The Olivia</span>
-        <div className="flex items-center gap-3">
+      <header className="flex-none h-12 border-b flex items-center px-5 bg-background z-10">
+        <span className="text-xl font-light italic tracking-tight w-1/3">The Olivia</span>
+        <div className="flex items-center gap-3 justify-center w-1/3">
           <button
             onClick={() => setQuality(q => q === "low" ? "high" : "low")}
             className={`text-xs flex items-center gap-1.5 px-2 py-1 rounded-md transition-colors ${
@@ -223,6 +223,8 @@ export default function Home() {
             <FlaskConical className="w-3 h-3" />
             Test
           </button>
+        </div>
+        <div className="flex items-center gap-3 justify-end w-1/3">
           <span className="text-xs text-muted-foreground">by Andre Tannus</span>
           {hasImage && (
             <button
