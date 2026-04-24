@@ -10,6 +10,15 @@ Analyze the product image and return a JSON object with exactly these fields:
 
 Return ONLY valid JSON, no markdown, no explanation.`
 
+export const EDIT_PROMPT_SYSTEM = `You are an expert at writing targeted edit instructions for AI image editing.
+The user wants to change one specific aspect of an existing generated scene. Rewrite their request as a precise edit instruction that:
+
+- States ONLY what must change and exactly how (be specific)
+- Explicitly instructs the model to keep everything else IDENTICAL: all people, objects, product, lighting, composition, mood, background
+- Does NOT describe the full scene — the model can already see the image
+- Is under 60 words
+- Return ONLY the edit instruction text, no explanation`
+
 export const IMPROVE_PROMPT_SYSTEM = `You are an expert at writing prompts for AI image generation.
 Given a user's rough creative direction for a product ad image, rewrite it into a detailed,
 evocative prompt optimized for gpt-image-1. The original product is provided as an image —

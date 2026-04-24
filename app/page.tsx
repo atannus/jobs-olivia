@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useCallback, useRef, useMemo } from "react"
-import { RefreshCw, FlaskConical } from "lucide-react"
+import { RefreshCw, FlaskConical, Sparkles } from "lucide-react"
 import { Canvas } from "@/components/Canvas"
 import { treeToFlow, updateNode, updateEdge, addChild, findParent } from "@/lib/tree"
 import type { TreeNode, ProductAnalysis } from "@/lib/types"
@@ -31,14 +31,17 @@ export default function Home() {
 
   const [tree, setTree] = useState<TreeNode>(initialTree)
   const [testMode, setTestMode] = useState(true)
+  const [quality, setQuality] = useState<"low" | "high">("high")
 
   const treeRef = useRef<TreeNode>(initialTree)
   const sourceB64Ref = useRef<string | null>(null)
   const sourceMimeRef = useRef("image/jpeg")
   const testModeRef = useRef(true)
+  const qualityRef = useRef<"low" | "high">("high")
 
   treeRef.current = tree
   testModeRef.current = testMode
+  qualityRef.current = quality
 
   const { nodes, edges } = useMemo(
     () => treeToFlow(tree, stableOnImageReady.current, stableOnSubmit.current),
@@ -89,12 +92,14 @@ export default function Home() {
   }, [])
 
   const onEdgeSubmit = useCallback(async (childId: string, prompt: string) => {
-    const b64 = sourceB64Ref.current
-    const mime = sourceMimeRef.current
-    if (!b64) return
-
     const parent = findParent(treeRef.current, childId)
     if (!parent) return
+
+    // Use the parent node's own image so branching from a generated image
+    // edits that image, not the original upload.
+    const b64 = parent.imageB64 ?? sourceB64Ref.current
+    const mime = parent.mimeType ?? sourceMimeRef.current
+    if (!b64) return
 
     const newSiblingId = `node-${++nodeCounter}`
     const newSiblingEdgeId = `edge-${parent.id}-${newSiblingId}`
@@ -123,7 +128,7 @@ export default function Home() {
         const res = await fetch("/api/generate", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ imageB64: b64, prompt, mimeType: mime }),
+          body: JSON.stringify({ imageB64: b64, prompt, mimeType: mime, quality: qualityRef.current, isSourceEdit: parent.isSource }),
         })
         const data = await res.json()
         if (!res.ok || !data.imageB64) throw new Error(data.error ?? "Generation failed")
@@ -181,6 +186,17 @@ export default function Home() {
       <header className="flex-none h-12 border-b flex items-center justify-between px-5 bg-background z-10">
         <span className="text-sm font-semibold tracking-tight">The Olivia</span>
         <div className="flex items-center gap-3">
+          <button
+            onClick={() => setQuality(q => q === "low" ? "high" : "low")}
+            className={`text-xs flex items-center gap-1.5 px-2 py-1 rounded-md transition-colors ${
+              quality === "high"
+                ? "bg-sky-100 text-sky-700 dark:bg-sky-900/30 dark:text-sky-400"
+                : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            <Sparkles className="w-3 h-3" />
+            HD
+          </button>
           <button
             onClick={() => setTestMode((t) => !t)}
             className={`text-xs flex items-center gap-1.5 px-2 py-1 rounded-md transition-colors ${

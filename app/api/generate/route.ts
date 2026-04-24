@@ -1,10 +1,10 @@
 import { NextRequest } from "next/server"
 import { getOpenAI } from "@/lib/openai"
-import { IMPROVE_PROMPT_SYSTEM } from "@/lib/prompts"
+import { IMPROVE_PROMPT_SYSTEM, EDIT_PROMPT_SYSTEM } from "@/lib/prompts"
 
 export async function POST(request: NextRequest) {
   try {
-    const { imageB64, prompt, mimeType = "image/jpeg" } = await request.json()
+    const { imageB64, prompt, mimeType = "image/jpeg", quality = "low", isSourceEdit = true } = await request.json()
 
     if (!imageB64 || !prompt) {
       return Response.json(
@@ -18,7 +18,7 @@ export async function POST(request: NextRequest) {
     const improveResponse = await openai.chat.completions.create({
       model: "gpt-4o",
       messages: [
-        { role: "system", content: IMPROVE_PROMPT_SYSTEM },
+        { role: "system", content: isSourceEdit ? IMPROVE_PROMPT_SYSTEM : EDIT_PROMPT_SYSTEM },
         { role: "user", content: prompt },
       ],
       max_tokens: 200,
@@ -35,7 +35,7 @@ export async function POST(request: NextRequest) {
       prompt: improvedPrompt,
       n: 1,
       size: "1024x1024",
-      quality: "low",
+      quality: quality === "high" ? "high" : "low",
     })
 
     const resultB64 = editResponse.data?.[0]?.b64_json
