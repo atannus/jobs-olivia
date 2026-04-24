@@ -8,8 +8,6 @@ import {
   BackgroundVariant,
   Controls,
   useReactFlow,
-  type OnNodesChange,
-  type OnEdgesChange,
 } from "@xyflow/react"
 import { ImageNodeCard } from "@/components/ImageNodeCard"
 import { PromptEdgeComponent } from "@/components/PromptEdge"
@@ -22,8 +20,8 @@ const edgeTypes = { promptEdge: PromptEdgeComponent }
 interface CanvasProps {
   nodes: ImageNode[]
   edges: PromptEdge[]
-  onNodesChange: OnNodesChange<ImageNode>
-  onEdgesChange: OnEdgesChange<PromptEdge>
+  onNodesChange: () => void
+  onEdgesChange: () => void
 }
 
 function CanvasInner({ nodes, edges, onNodesChange, onEdgesChange }: CanvasProps) {

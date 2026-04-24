@@ -1,91 +1,70 @@
 "use client"
 
-import { useState, useCallback, useRef } from "react"
-import { useNodesState, useEdgesState, MarkerType } from "@xyflow/react"
+import { useState, useCallback, useRef, useMemo } from "react"
 import { RefreshCw, FlaskConical } from "lucide-react"
 import { Canvas } from "@/components/Canvas"
-import { getChildX, getBalancedYPositions } from "@/lib/layout"
-import type { ImageNode, PromptEdge, NodeStatus, ProductAnalysis } from "@/lib/types"
+import { treeToFlow, updateNode, updateEdge, addChild, findParent } from "@/lib/tree"
+import type { TreeNode, ProductAnalysis } from "@/lib/types"
 
 const SOURCE_NODE_ID = "source"
 let nodeCounter = 0
 
-const DEFAULT_MARKER = { type: MarkerType.ArrowClosed, width: 12, height: 12 }
-
-function noopImageReady() {}
+const initialTree: TreeNode = {
+  id: SOURCE_NODE_ID,
+  status: "upload",
+  isSource: true,
+  children: [],
+}
 
 export default function Home() {
-  // callbacksRef + stable wrappers: node/edge data needs stable function refs
-  // so React Flow doesn't remount nodes on every render. The wrappers always
-  // delegate to the latest implementation stored in callbacksRef.
   const callbacksRef = useRef<{
     handleImageReady: (b64: string, mime: string) => void
-    onEdgeSubmit: (edgeId: string, prompt: string) => void
+    onEdgeSubmit: (childId: string, prompt: string) => void
   }>({ handleImageReady: () => {}, onEdgeSubmit: () => {} })
 
   const stableOnImageReady = useRef((b64: string, mime: string) =>
     callbacksRef.current.handleImageReady(b64, mime)
   )
-  const stableOnEdgeSubmit = useRef((edgeId: string, prompt: string) =>
-    callbacksRef.current.onEdgeSubmit(edgeId, prompt)
+  const stableOnSubmit = useRef((childId: string, prompt: string) =>
+    callbacksRef.current.onEdgeSubmit(childId, prompt)
   )
 
-  const [nodes, setNodes, onNodesChange] = useNodesState<ImageNode>([{
-    id: SOURCE_NODE_ID,
-    type: "imageNode",
-    position: { x: 0, y: 0 },
-    data: { status: "upload", isSource: true, onImageReady: stableOnImageReady.current },
-  }])
-  const [edges, setEdges, onEdgesChange] = useEdgesState<PromptEdge>([])
-  const [sourceImageB64, setSourceImageB64] = useState<string | null>(null)
-  const [sourceMime, setSourceMime] = useState("image/jpeg")
+  const [tree, setTree] = useState<TreeNode>(initialTree)
   const [testMode, setTestMode] = useState(true)
 
-  // Mutable refs for reading current values inside async callbacks (avoids stale closures)
-  const nodesRef = useRef<ImageNode[]>([])
-  const edgesRef = useRef<PromptEdge[]>([])
+  const treeRef = useRef<TreeNode>(initialTree)
   const sourceB64Ref = useRef<string | null>(null)
   const sourceMimeRef = useRef("image/jpeg")
-  const testModeRef = useRef(false)
+  const testModeRef = useRef(true)
 
-  nodesRef.current = nodes
-  edgesRef.current = edges
-  sourceB64Ref.current = sourceImageB64
-  sourceMimeRef.current = sourceMime
+  treeRef.current = tree
   testModeRef.current = testMode
 
+  const { nodes, edges } = useMemo(
+    () => treeToFlow(tree, stableOnImageReady.current, stableOnSubmit.current),
+    [tree]
+  )
+
   const handleImageReady = useCallback(async (b64: string, mimeType: string) => {
-    setSourceImageB64(b64)
-    setSourceMime(mimeType)
+    sourceB64Ref.current = b64
+    sourceMimeRef.current = mimeType
 
     const placeholderId = `node-${++nodeCounter}`
     const edgeId = `edge-${SOURCE_NODE_ID}-${placeholderId}`
 
-    setNodes((prev) => [
-      ...prev.map((n) =>
-        n.id === SOURCE_NODE_ID
-          ? { ...n, data: { ...n.data, status: "ready" as NodeStatus, imageB64: b64, mimeType } }
-          : n
-      ),
-      {
-        id: placeholderId,
-        type: "imageNode" as const,
-        position: { x: getChildX(0), y: 0 },
-        data: { status: "placeholder" as NodeStatus, isSource: false, onImageReady: noopImageReady },
-      },
-    ])
-
-    setEdges((prev) => [
+    setTree(prev => ({
       ...prev,
-      {
-        id: edgeId,
-        type: "promptEdge" as const,
-        source: SOURCE_NODE_ID,
-        target: placeholderId,
-        markerEnd: DEFAULT_MARKER,
-        data: { status: "draft" as const, onSubmit: stableOnEdgeSubmit.current },
-      },
-    ])
+      status: "ready",
+      imageB64: b64,
+      mimeType,
+      children: [
+        ...prev.children,
+        {
+          edge: { id: edgeId, status: "draft" },
+          node: { id: placeholderId, status: "placeholder", isSource: false, children: [] },
+        },
+      ],
+    }))
 
     if (testModeRef.current) return
 
@@ -97,85 +76,47 @@ export default function Home() {
       })
       const data = await res.json()
       if (res.ok) {
-        setNodes((prev) =>
-          prev.map((n) =>
-            n.id === SOURCE_NODE_ID
-              ? { ...n, data: { ...n.data, productType: (data as ProductAnalysis).productType } }
-              : n
-          )
+        setTree(prev =>
+          updateNode(prev, SOURCE_NODE_ID, n => ({
+            ...n,
+            productType: (data as ProductAnalysis).productType,
+          }))
         )
       }
     } catch {
       // non-fatal
     }
-  }, [setNodes, setEdges])
+  }, [])
 
-  const onEdgeSubmit = useCallback(async (edgeId: string, prompt: string) => {
+  const onEdgeSubmit = useCallback(async (childId: string, prompt: string) => {
     const b64 = sourceB64Ref.current
     const mime = sourceMimeRef.current
     if (!b64) return
 
-    const edge = edgesRef.current.find((e) => e.id === edgeId)
-    if (!edge) return
+    const parent = findParent(treeRef.current, childId)
+    if (!parent) return
 
-    const { source: sourceNodeId, target: targetNodeId } = edge
-    const sourceNode = nodesRef.current.find((n) => n.id === sourceNodeId)
-    if (!sourceNode) return
+    const newSiblingId = `node-${++nodeCounter}`
+    const newSiblingEdgeId = `edge-${parent.id}-${newSiblingId}`
 
-    // All existing edges from this source (includes the one being submitted)
-    const siblingEdges = edgesRef.current.filter((e) => e.source === sourceNodeId)
-    const siblingTargetIds = siblingEdges.map((e) => e.target)
+    setTree(prev => {
+      let next = updateNode(prev, childId, n => ({ ...n, status: "loading" }))
+      next = updateEdge(next, childId, e => ({ ...e, status: "generating", prompt }))
+      next = addChild(
+        next,
+        parent.id,
+        { id: newSiblingEdgeId, status: "draft" },
+        { id: newSiblingId, status: "placeholder", isSource: false, children: [] }
+      )
+      return next
+    })
 
-    // New placeholder for the next branch from the same source
-    const newPlaceholderId = `node-${++nodeCounter}`
-    const newEdgeId = `edge-${sourceNodeId}-${newPlaceholderId}`
-
-    // Rebalance: N existing children + 1 new = N+1 total
-    const totalChildren = siblingTargetIds.length + 1
-    const balancedYs = getBalancedYPositions(sourceNode.position.y, totalChildren)
-    const childX = getChildX(sourceNode.position.x)
-
-    setNodes((prev) => [
-      ...prev.map((n) => {
-        const idx = siblingTargetIds.indexOf(n.id)
-        if (idx === -1) return n
-        const newY = balancedYs[idx]
-        if (n.id === targetNodeId) {
-          return { ...n, position: { ...n.position, y: newY }, data: { ...n.data, status: "loading" as NodeStatus } }
-        }
-        return { ...n, position: { ...n.position, y: newY } }
-      }),
-      {
-        id: newPlaceholderId,
-        type: "imageNode" as const,
-        position: { x: childX, y: balancedYs[totalChildren - 1] },
-        data: { status: "placeholder" as NodeStatus, isSource: false, onImageReady: noopImageReady },
-      },
-    ])
-
-    setEdges((prev) => [
-      ...prev.map((e) =>
-        e.id === edgeId
-          ? { ...e, animated: true, data: { ...e.data!, status: "generating" as const, prompt } }
-          : e
-      ),
-      {
-        id: newEdgeId,
-        type: "promptEdge" as const,
-        source: sourceNodeId,
-        target: newPlaceholderId,
-        markerEnd: DEFAULT_MARKER,
-        data: { status: "draft" as const, onSubmit: stableOnEdgeSubmit.current },
-      },
-    ])
-
-    // --- API call ---
     try {
       let generatedB64: string
       let improvedPrompt: string
 
       if (testModeRef.current) {
-        await new Promise<void>((resolve) => setTimeout(resolve, 2000))
+        await new Promise<void>(r => setTimeout(r, 2000))
         generatedB64 = b64
         improvedPrompt = prompt
       } else {
@@ -190,93 +131,50 @@ export default function Home() {
         improvedPrompt = data.improvedPrompt
       }
 
-      // Position of the now-done target (may have shifted during rebalance)
-      const targetCurrentY =
-        nodesRef.current.find((n) => n.id === targetNodeId)?.position.y ?? 0
-
-      // New placeholder to the right of the done node (for branching from it)
       const nextPlaceholderId = `node-${++nodeCounter}`
-      const nextEdgeId = `edge-${targetNodeId}-${nextPlaceholderId}`
+      const nextEdgeId = `edge-${childId}-${nextPlaceholderId}`
 
-      setNodes((prev) => [
-        ...prev.map((n) =>
-          n.id === targetNodeId
-            ? {
-                ...n,
-                data: {
-                  ...n.data,
-                  status: "done" as NodeStatus,
-                  imageB64: generatedB64,
-                  mimeType: "image/png",
-                  improvedPrompt,
-                },
-              }
-            : n
-        ),
-        {
-          id: nextPlaceholderId,
-          type: "imageNode" as const,
-          position: { x: getChildX(childX), y: targetCurrentY },
-          data: { status: "placeholder" as NodeStatus, isSource: false, onImageReady: noopImageReady },
-        },
-      ])
-
-      setEdges((prev) => [
-        ...prev.map((e) =>
-          e.id === edgeId
-            ? { ...e, animated: false, data: { ...e.data!, status: "done" as const } }
-            : e
-        ),
-        {
-          id: nextEdgeId,
-          type: "promptEdge" as const,
-          source: targetNodeId,
-          target: nextPlaceholderId,
-          markerEnd: DEFAULT_MARKER,
-          data: { status: "draft" as const, onSubmit: stableOnEdgeSubmit.current },
-        },
-      ])
+      setTree(prev => {
+        let next = updateNode(prev, childId, n => ({
+          ...n,
+          status: "done",
+          imageB64: generatedB64,
+          mimeType: "image/png",
+          improvedPrompt,
+        }))
+        next = updateEdge(next, childId, e => ({ ...e, status: "done" }))
+        next = addChild(
+          next,
+          childId,
+          { id: nextEdgeId, status: "draft" },
+          { id: nextPlaceholderId, status: "placeholder", isSource: false, children: [] }
+        )
+        return next
+      })
     } catch (err) {
-      setNodes((prev) =>
-        prev.map((n) =>
-          n.id === targetNodeId
-            ? {
-                ...n,
-                data: {
-                  ...n.data,
-                  status: "error" as NodeStatus,
-                  errorMessage: err instanceof Error ? err.message : "Generation failed",
-                },
-              }
-            : n
-        )
-      )
-      setEdges((prev) =>
-        prev.map((e) =>
-          e.id === edgeId
-            ? { ...e, animated: false, data: { ...e.data!, status: "done" as const } }
-            : e
-        )
-      )
+      setTree(prev => {
+        let next = updateNode(prev, childId, n => ({
+          ...n,
+          status: "error",
+          errorMessage: err instanceof Error ? err.message : "Generation failed",
+        }))
+        next = updateEdge(next, childId, e => ({ ...e, status: "done" }))
+        return next
+      })
     }
-  }, [setNodes, setEdges])
+  }, [])
 
-  // Keep callbacksRef current every render
   callbacksRef.current.handleImageReady = handleImageReady
   callbacksRef.current.onEdgeSubmit = onEdgeSubmit
 
   const reset = useCallback(() => {
-    setSourceImageB64(null)
-    setSourceMime("image/jpeg")
+    sourceB64Ref.current = null
+    sourceMimeRef.current = "image/jpeg"
     nodeCounter = 0
-    setNodes([{
-      id: SOURCE_NODE_ID,
-      type: "imageNode",
-      position: { x: 0, y: 0 },
-      data: { status: "upload", isSource: true, onImageReady: stableOnImageReady.current },
-    }])
-    setEdges([])
-  }, [setNodes, setEdges])
+    setTree(initialTree)
+  }, [])
+
+  const hasImage = sourceB64Ref.current !== null || tree.status !== "upload"
 
   return (
     <div className="h-screen flex flex-col overflow-hidden">
@@ -295,7 +193,7 @@ export default function Home() {
             Test
           </button>
           <span className="text-xs text-muted-foreground">by Andre Tannus</span>
-          {sourceImageB64 && (
+          {hasImage && (
             <button
               onClick={reset}
               className="text-xs text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1"
@@ -311,8 +209,8 @@ export default function Home() {
         <Canvas
           nodes={nodes}
           edges={edges}
-          onNodesChange={onNodesChange}
-          onEdgesChange={onEdgesChange}
+          onNodesChange={() => {}}
+          onEdgesChange={() => {}}
         />
       </div>
     </div>

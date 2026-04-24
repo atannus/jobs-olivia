@@ -37,7 +37,26 @@ export type ImageNode = Node<ImageNodeData>
 export interface PromptEdgeData extends Record<string, unknown> {
   status: "draft" | "generating" | "done"
   prompt?: string
-  onSubmit: (edgeId: string, prompt: string) => void
+  childId: string
+  onSubmit: (childId: string, prompt: string) => void
 }
 
 export type PromptEdge = Edge<PromptEdgeData>
+
+export interface TreeEdge {
+  id: string
+  status: "draft" | "generating" | "done"
+  prompt?: string
+}
+
+export interface TreeNode {
+  id: string
+  status: NodeStatus
+  imageB64?: string
+  mimeType?: string
+  isSource: boolean
+  improvedPrompt?: string
+  errorMessage?: string
+  productType?: string
+  children: Array<{ edge: TreeEdge; node: TreeNode }>
+}

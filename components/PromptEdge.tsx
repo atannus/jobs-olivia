@@ -49,7 +49,7 @@ export const PromptEdgeComponent = memo(function PromptEdgeComponent({
 
   function handleSubmit() {
     if (!canSubmit || !data?.onSubmit) return
-    data.onSubmit(id, promptText.trim())
+    data.onSubmit(data.childId, promptText.trim())
     setPromptText("")
   }
 
