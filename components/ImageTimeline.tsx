@@ -3,7 +3,15 @@
 import { useEffect, useRef } from "react"
 import { Download, Loader2, ArrowRight } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import type { IterationStep } from "@/lib/types"
+// Retired component — type defined locally to avoid coupling to current lib/types
+interface IterationStep {
+  id: string
+  imageB64: string
+  mimeType: string
+  isOriginal: boolean
+  prompt?: string
+  improvedPrompt?: string
+}
 
 interface ImageTimelineProps {
   steps: IterationStep[]
