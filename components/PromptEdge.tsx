@@ -1,12 +1,7 @@
 "use client"
 
 import { memo, useState } from "react"
-import {
-  BaseEdge,
-  EdgeLabelRenderer,
-  getBezierPath,
-  Position,
-} from "@xyflow/react"
+import { BaseEdge, EdgeLabelRenderer, Position } from "@xyflow/react"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import type { PromptEdgeData } from "@/lib/types"
@@ -23,29 +18,72 @@ interface PromptEdgeProps {
   data?: PromptEdgeData
 }
 
+/**
+ * Orthogonal elbow path: exits source right, bends quickly, travels to target
+ * height, bends right, arrives at target left. Label sits on the final
+ * horizontal segment.
+ */
+function elbowPath(
+  sx: number, sy: number,
+  tx: number, ty: number,
+  r = 20
+): { path: string; labelX: number; labelY: number } {
+  const dy = ty - sy
+  if (Math.abs(dy) < 2) {
+    return { path: `M ${sx} ${sy} H ${tx}`, labelX: (sx + tx) / 2, labelY: sy }
+  }
+
+  // Fixed short exit from source before the bend
+  const elbowX = sx + 40
+  // Clamp radius so arcs don't exceed available space
+  const rc = Math.min(r, Math.abs(dy) / 2, Math.max(1, (tx - elbowX) / 2))
+
+  let path: string
+  if (dy < 0) {
+    // Target is above source: right → up → right
+    // Arc 1: right → up (left turn in screen space, sweep=0)
+    // Arc 2: up   → right (right turn in screen space, sweep=1)
+    path = [
+      `M ${sx} ${sy}`,
+      `H ${elbowX - rc}`,
+      `A ${rc} ${rc} 0 0 0 ${elbowX} ${sy - rc}`,
+      `V ${ty + rc}`,
+      `A ${rc} ${rc} 0 0 1 ${elbowX + rc} ${ty}`,
+      `H ${tx}`,
+    ].join(" ")
+  } else {
+    // Target is below source: right → down → right
+    // Arc 1: right → down (right turn in screen space, sweep=1)
+    // Arc 2: down  → right (left turn in screen space, sweep=0)
+    path = [
+      `M ${sx} ${sy}`,
+      `H ${elbowX - rc}`,
+      `A ${rc} ${rc} 0 0 1 ${elbowX} ${sy + rc}`,
+      `V ${ty - rc}`,
+      `A ${rc} ${rc} 0 0 0 ${elbowX + rc} ${ty}`,
+      `H ${tx}`,
+    ].join(" ")
+  }
+
+  return {
+    path,
+    labelX: (elbowX + rc + tx) / 2,
+    labelY: ty,
+  }
+}
+
 export const PromptEdgeComponent = memo(function PromptEdgeComponent({
-  id,
   sourceX,
   sourceY,
   targetX,
   targetY,
-  sourcePosition,
-  targetPosition,
-  markerEnd,
   data,
 }: PromptEdgeProps) {
   const [promptText, setPromptText] = useState("")
   const isDraft = data?.status === "draft"
   const canSubmit = isDraft && promptText.trim().length > 0
 
-  const [edgePath, labelX, labelY] = getBezierPath({
-    sourceX,
-    sourceY,
-    sourcePosition,
-    targetX,
-    targetY,
-    targetPosition,
-  })
+  const { path: edgePath, labelX, labelY } = elbowPath(sourceX, sourceY, targetX, targetY)
 
   function handleSubmit() {
     if (!canSubmit || !data?.onSubmit) return
@@ -57,11 +95,8 @@ export const PromptEdgeComponent = memo(function PromptEdgeComponent({
     <>
       <BaseEdge
         path={edgePath}
-        markerEnd={markerEnd}
         style={{
-          stroke: isDraft
-            ? "hsl(var(--border))"
-            : "hsl(var(--foreground) / 0.3)",
+          stroke: "color-mix(in oklch, var(--muted-foreground) 55%, transparent)",
           strokeWidth: 1.5,
           strokeDasharray: isDraft ? "6 4" : undefined,
         }}
@@ -111,7 +146,13 @@ export const PromptEdgeComponent = memo(function PromptEdgeComponent({
           )}
 
           {data?.status === "done" && data.prompt && (
-            <div className="bg-muted/70 rounded-lg px-2.5 py-1 max-w-[140px]">
+            <div
+              className="rounded-lg px-2.5 py-1 max-w-[140px]"
+              style={{
+                background: "var(--muted)",
+                border: "1.5px solid color-mix(in oklch, var(--muted-foreground) 55%, transparent)",
+              }}
+            >
               <p className="text-[10px] text-muted-foreground italic line-clamp-2 leading-relaxed">
                 {data.prompt}
               </p>

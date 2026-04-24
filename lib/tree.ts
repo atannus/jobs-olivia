@@ -1,8 +1,5 @@
-import { MarkerType } from "@xyflow/react"
 import type { TreeNode, TreeEdge, ImageNode, PromptEdge } from "@/lib/types"
 import { NODE_HEIGHT, H_GAP, V_GAP } from "@/lib/layout"
-
-const DEFAULT_MARKER = { type: MarkerType.ArrowClosed, width: 12, height: 12 }
 
 export function subtreeHeight(node: TreeNode): number {
   if (node.children.length === 0) return NODE_HEIGHT
@@ -66,7 +63,6 @@ export function treeToFlow(
         source: node.id,
         target: child.id,
         animated: edge.status === "generating",
-        markerEnd: DEFAULT_MARKER,
         data: { status: edge.status, prompt: edge.prompt, childId: child.id, onSubmit },
       })
       walk(child)
