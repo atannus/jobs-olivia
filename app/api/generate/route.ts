@@ -21,7 +21,7 @@ export async function POST(request: NextRequest) {
         { role: "system", content: IMPROVE_PROMPT_SYSTEM },
         { role: "user", content: prompt },
       ],
-      max_tokens: 300,
+      max_tokens: 200,
     })
     const improvedPrompt =
       improveResponse.choices[0].message.content?.trim() ?? prompt
@@ -35,6 +35,7 @@ export async function POST(request: NextRequest) {
       prompt: improvedPrompt,
       n: 1,
       size: "1024x1024",
+      quality: "low",
     })
 
     const resultB64 = editResponse.data?.[0]?.b64_json

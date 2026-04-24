@@ -5,16 +5,18 @@ export interface ProductAnalysis {
   suggestedPrompts: string[]
 }
 
-export interface GenerationResult {
+export interface IterationStep {
+  id: string
   imageB64: string
-  originalPrompt: string
-  improvedPrompt: string
+  mimeType: string
+  isOriginal: boolean
+  prompt?: string
+  improvedPrompt?: string
 }
 
 export interface ChatMessage {
   role: "user" | "assistant"
   content: string
-  imageB64?: string
   triggeredGeneration?: boolean
 }
 

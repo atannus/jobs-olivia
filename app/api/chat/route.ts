@@ -1,5 +1,4 @@
 import { NextRequest } from "next/server"
-import type { ChatCompletionContentPart } from "openai/resources"
 import { getOpenAI } from "@/lib/openai"
 import { CHAT_SYSTEM_PROMPT } from "@/lib/prompts"
 import type { ChatMessage, ChatResponse } from "@/lib/types"
@@ -8,38 +7,28 @@ export async function POST(request: NextRequest) {
   try {
     const {
       messages,
-      currentImageB64,
+      productType,
       userMessage,
     }: {
       messages: ChatMessage[]
-      currentImageB64: string | null
+      productType: string
       userMessage: string
     } = await request.json()
 
-    const historyMessages = messages.map((m) => ({
+    const systemPrompt = `${CHAT_SYSTEM_PROMPT}\n\nProduct context: ${productType}`
+
+    const historyMessages = messages.slice(-10).map((m) => ({
       role: m.role as "user" | "assistant",
       content: m.content,
     }))
-
-    const userContent: ChatCompletionContentPart[] = [
-      { type: "text", text: userMessage },
-    ]
-
-    if (currentImageB64) {
-      userContent.unshift({
-        type: "image_url",
-        image_url: { url: `data:image/jpeg;base64,${currentImageB64}` },
-      })
-    }
 
     const openai = getOpenAI()
     const response = await openai.chat.completions.create({
       model: "gpt-4o",
       response_format: { type: "json_object" },
       messages: [
-        { role: "system", content: CHAT_SYSTEM_PROMPT },
+        { role: "system", content: systemPrompt },
         ...historyMessages,
-        { role: "user", content: userContent },
       ],
       max_tokens: 400,
     })
