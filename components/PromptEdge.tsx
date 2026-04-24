@@ -139,7 +139,7 @@ export const PromptEdgeComponent = memo(function PromptEdgeComponent({
           {data?.status === "generating" && (
             <div className="bg-background/90 backdrop-blur-sm border rounded-lg px-2.5 py-1.5 flex items-center gap-2 shadow-sm">
               <div className="w-3 h-3 rounded-full border border-primary/30 border-t-primary animate-spin flex-shrink-0" />
-              <span className="text-[10px] text-muted-foreground italic line-clamp-2 max-w-[120px]">
+              <span className="text-[10px] text-muted-foreground italic max-w-[140px] leading-relaxed">
                 {data.prompt}
               </span>
             </div>
@@ -147,13 +147,13 @@ export const PromptEdgeComponent = memo(function PromptEdgeComponent({
 
           {data?.status === "done" && data.prompt && (
             <div
-              className="rounded-lg px-2.5 py-1 max-w-[140px]"
+              className="rounded-lg px-2.5 py-2 max-w-[180px]"
               style={{
                 background: "var(--muted)",
                 border: "1.5px solid color-mix(in oklch, var(--muted-foreground) 55%, transparent)",
               }}
             >
-              <p className="text-[10px] text-muted-foreground italic line-clamp-2 leading-relaxed">
+              <p className="text-[10px] text-muted-foreground italic leading-relaxed">
                 {data.prompt}
               </p>
             </div>

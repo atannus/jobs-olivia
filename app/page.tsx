@@ -30,13 +30,13 @@ export default function Home() {
   )
 
   const [tree, setTree] = useState<TreeNode>(initialTree)
-  const [testMode, setTestMode] = useState(true)
+  const [testMode, setTestMode] = useState(false)
   const [quality, setQuality] = useState<"low" | "high">("high")
 
   const treeRef = useRef<TreeNode>(initialTree)
   const sourceB64Ref = useRef<string | null>(null)
   const sourceMimeRef = useRef("image/jpeg")
-  const testModeRef = useRef(true)
+  const testModeRef = useRef(false)
   const qualityRef = useRef<"low" | "high">("high")
 
   treeRef.current = tree

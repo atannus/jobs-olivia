@@ -2,7 +2,7 @@
 
 import { memo } from "react"
 import { Handle, Position } from "@xyflow/react"
-import { Download, Wand2 } from "lucide-react"
+import { Download } from "lucide-react"
 import { ImageUpload } from "@/components/ImageUpload"
 import type { ImageNodeData } from "@/lib/types"
 
@@ -77,15 +77,6 @@ export const ImageNodeCard = memo(function ImageNodeCard({ data }: ImageNodeCard
             </div>
           )}
         </div>
-
-        {data.improvedPrompt && (
-          <div className="px-3 py-2 border-t flex items-start gap-1.5 bg-muted/30">
-            <Wand2 className="w-3 h-3 shrink-0 mt-0.5 text-muted-foreground" />
-            <p className="text-[10px] italic text-muted-foreground leading-relaxed line-clamp-2">
-              {data.improvedPrompt}
-            </p>
-          </div>
-        )}
       </div>
 
       <Handle type="source" position={Position.Right} style={{ opacity: 0, pointerEvents: "none" }} />
