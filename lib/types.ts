@@ -19,21 +19,25 @@ export interface ChatResponse {
   generationPrompt?: string
 }
 
-export type NodeStatus = "upload" | "ready" | "loading" | "done" | "error"
+export type NodeStatus = "upload" | "placeholder" | "ready" | "loading" | "done" | "error"
 
 export interface ImageNodeData extends Record<string, unknown> {
   status: NodeStatus
   imageB64?: string
   mimeType?: string
   isSource: boolean
-  prompt?: string
   improvedPrompt?: string
   errorMessage?: string
-  suggestedPrompts?: string[]
   productType?: string
-  onGenerate: (sourceNodeId: string, prompt: string) => void
   onImageReady: (b64: string, mimeType: string) => void
 }
 
 export type ImageNode = Node<ImageNodeData>
-export type ImageEdge = Edge
+
+export interface PromptEdgeData extends Record<string, unknown> {
+  status: "draft" | "generating" | "done"
+  prompt?: string
+  onSubmit: (edgeId: string, prompt: string) => void
+}
+
+export type PromptEdge = Edge<PromptEdgeData>

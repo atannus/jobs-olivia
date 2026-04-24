@@ -1,46 +1,33 @@
 "use client"
 
-import { useState, memo } from "react"
+import { memo } from "react"
 import { Handle, Position } from "@xyflow/react"
-import { ArrowRight, Download, Wand2 } from "lucide-react"
+import { Download, Wand2 } from "lucide-react"
 import { ImageUpload } from "@/components/ImageUpload"
-import { Button } from "@/components/ui/button"
-import { Textarea } from "@/components/ui/textarea"
 import type { ImageNodeData } from "@/lib/types"
 
 interface ImageNodeCardProps {
-  id: string
   data: ImageNodeData
 }
 
-export const ImageNodeCard = memo(function ImageNodeCard({
-  id,
-  data,
-}: ImageNodeCardProps) {
-  const [promptText, setPromptText] = useState("")
-  const canSubmit = (data.status === "ready" || data.status === "done") && promptText.trim().length > 0
-  const showPromptZone = data.status === "ready" || data.status === "done"
-
-  function handleSubmit() {
-    if (!canSubmit) return
-    data.onGenerate(id, promptText.trim())
-    setPromptText("")
-  }
-
+export const ImageNodeCard = memo(function ImageNodeCard({ data }: ImageNodeCardProps) {
   return (
-    <div className="flex items-start">
-      <Handle
-        type="target"
-        position={Position.Left}
-        style={{ opacity: 0, pointerEvents: "none" }}
-      />
+    <div className="w-[300px]">
+      <Handle type="target" position={Position.Left} style={{ opacity: 0, pointerEvents: "none" }} />
 
-      {/* Card */}
-      <div className="w-[300px] rounded-2xl border bg-card shadow-md overflow-hidden">
+      <div className="rounded-2xl border bg-card shadow-md overflow-hidden">
         <div className="relative w-full aspect-square bg-muted group">
           {data.status === "upload" && (
             <div className="absolute inset-0 p-3 nodrag nopan">
               <ImageUpload onImageReady={data.onImageReady} />
+            </div>
+          )}
+
+          {data.status === "placeholder" && (
+            <div className="absolute inset-0 m-3 rounded-xl border-2 border-dashed border-border/25 flex items-center justify-center bg-muted/20">
+              <span className="text-[10px] text-muted-foreground/25 select-none uppercase tracking-widest">
+                image
+              </span>
             </div>
           )}
 
@@ -99,68 +86,9 @@ export const ImageNodeCard = memo(function ImageNodeCard({
             </p>
           </div>
         )}
-
-        {data.isSource && data.suggestedPrompts && data.suggestedPrompts.length > 0 && (
-          <div className="px-3 py-2.5 border-t space-y-1.5">
-            <p className="text-[9px] uppercase tracking-widest text-muted-foreground mb-1">
-              Suggested scenes
-            </p>
-            {data.suggestedPrompts.map((p, i) => (
-              <button
-                key={i}
-                className="nodrag nopan w-full text-left text-xs px-2.5 py-1.5 rounded-lg bg-muted hover:bg-accent transition-colors leading-snug"
-                onClick={() => data.onGenerate(id, p)}
-              >
-                {p}
-              </button>
-            ))}
-          </div>
-        )}
       </div>
 
-      {showPromptZone && (
-        <div className="flex items-start gap-3 ml-4 mt-4">
-          <div className="w-[200px] flex flex-col gap-2 nodrag nopan">
-            <Textarea
-              rows={3}
-              placeholder="Describe the scene…"
-              value={promptText}
-              onChange={(e) => setPromptText(e.target.value)}
-              className="nodrag nopan resize-none text-sm"
-              onKeyDown={(e) => {
-                if (e.key === "Enter" && !e.shiftKey) {
-                  e.preventDefault()
-                  handleSubmit()
-                }
-              }}
-            />
-            <Button
-              size="sm"
-              className="nodrag nopan w-full"
-              onClick={handleSubmit}
-              disabled={!canSubmit}
-            >
-              Generate
-            </Button>
-          </div>
-
-          <div className="flex-shrink-0 mt-10 text-muted-foreground/50">
-            <ArrowRight className="w-5 h-5" />
-          </div>
-
-          <div className="w-[300px] aspect-square rounded-2xl border-2 border-dashed border-border/50 flex items-center justify-center bg-muted/20 flex-shrink-0">
-            <span className="text-xs text-muted-foreground/30 text-center leading-relaxed">
-              generated<br />image
-            </span>
-          </div>
-        </div>
-      )}
-
-      <Handle
-        type="source"
-        position={Position.Right}
-        style={{ opacity: 0, pointerEvents: "none" }}
-      />
+      <Handle type="source" position={Position.Right} style={{ opacity: 0, pointerEvents: "none" }} />
     </div>
   )
 })
